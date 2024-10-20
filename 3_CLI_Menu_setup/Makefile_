@@ -1,0 +1,70 @@
+# Makefile for automating project setup and tasks
+
+# Variables
+VENV_DIR = .venv
+PYTHON = $(VENV_DIR)/Scripts/python.exe
+REQUIREMENTS = requirements.txt
+SHORTCUT_SCRIPT = create_shortcuts.py
+GUI_DIR = GUI/src
+OS = $(shell uname)
+
+# Detect if it's Windows or Linux/MacOS
+ifeq ($(OS), Linux)
+    TERMINAL = gnome-terminal --  # Use gnome-terminal for Linux
+else
+    ifeq ($(OS), Darwin)
+        TERMINAL = open -a Terminal  # Use macOS Terminal
+    else
+        TERMINAL = start  # Use start for Windows
+        PYTHON = $(VENV_DIR)/Scripts/python.exe  # Windows Python path
+    endif
+endif
+
+.PHONY: help venv install shortcuts clean run_CLI run_GUI
+
+help:
+	@echo "Available make commands:"
+	@echo "  make venv         - Create a virtual environment"
+	@echo "  make install      - Install Python and Node.js dependencies"
+	@echo "  make shortcuts    - Create shortcuts"
+	@echo "  make run_CLI      - Start backend and run CLI tasks"
+	@echo "  make run_GUI      - Start the Electron-based GUI"
+	@echo "  make clean        - Remove virtual environment and clean shortcuts"
+
+venv:
+	@if [ ! -d $(VENV_DIR) ];	then \
+		echo "Creating virtual environment...";
+		python -m venv $(VENV_DIR);	\
+	else
+		echo "Virtual environment already exists."; \
+	fi
+
+install: venv
+	@echo "Installing Python dependencies..."
+	$(PYTHON) -m pip install --upgrade pip
+	$(PYTHON) -m pip install -r $(REQUIREMENTS)
+
+	@echo "Installing Node.js dependencies for Electron GUI..."
+	cd $(GUI_DIR) && npm install
+
+shortcuts: install
+	@echo "Creating shortcuts..."
+	$(PYTHON) $(SHORTCUT_SCRIPT)
+
+# Run the backend and CLI tasks sequentially
+run_CLI: install
+	@echo "Starting backend in a new terminal..."
+	$(TERMINAL) $(PYTHON) src/run.py backend  # Opens new terminal for backend
+
+	@echo "Running default CLI task in current terminal..."
+	$(PYTHON) src/run.py 	# run_all
+
+# Run the Electron-based GUI
+run_GUI:
+	@echo "Starting the Electron-based GUI in a new terminal..."
+	cd $(GUI_DIR) && $(TERMINAL) npm run dev &  # Opens new terminal for Electron GUI
+
+clean:
+	@echo "Cleaning up..."
+	rm -rf $(VENV_DIR)
+	rm -rf shortcuts/*.lnk

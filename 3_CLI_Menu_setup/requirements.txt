@@ -1,0 +1,5 @@
+Flask>=2.0.0
+requests>=2.25.1
+Click>=8.0.0
+winshell>=0.6
+pywin32>=301
